@@ -12,7 +12,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ShareCompat;
 import android.support.v4.content.FileProvider;
@@ -38,11 +37,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String FILE_PROVIDER_AUTHORITY = "co.carlosandresjimenez.android.myfileprovider";
 
-    private static final int FILE_PROVIDER_OPTION = 0;
-
     private ImageView mImageView;
     private TextView mTextView;
-    private FloatingActionButton mFab;
 
     private Uri mUri;
     private Bitmap mBitmap;
@@ -57,8 +53,6 @@ public class MainActivity extends AppCompatActivity {
 
         mTextView = (TextView) findViewById(R.id.image_uri);
         mImageView = (ImageView) findViewById(R.id.image);
-
-
     }
 
     @Override
