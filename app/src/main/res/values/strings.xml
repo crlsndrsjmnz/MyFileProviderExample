@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">MyFileProviderExample</string>
+    <string name="action_send_email_opt1">Send Email Opt 1</string>
+    <string name="action_send_email_opt2">Send Email Opt 2</string>
+</resources>

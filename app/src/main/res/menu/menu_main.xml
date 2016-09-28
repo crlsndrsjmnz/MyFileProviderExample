@@ -1,0 +1,16 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="co.carlosandresjimenez.android.myfileproviderexample.MainActivity">
+    <item
+        android:id="@+id/action_send_email_opt1"
+        android:orderInCategory="100"
+        android:title="@string/action_send_email_opt1"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_send_email_opt2"
+        android:orderInCategory="100"
+        android:title="@string/action_send_email_opt2"
+        app:showAsAction="never" />
+
+</menu>
