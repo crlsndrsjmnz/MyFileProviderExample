@@ -10,7 +10,9 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ShareCompat;
@@ -28,12 +30,16 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
+
     private static final int PICK_IMAGE_REQUEST = 0;
+    private static final int REQUEST_IMAGE_CAPTURE = 1;
 
     private static final String FILE_PROVIDER_AUTHORITY = "co.carlosandresjimenez.android.myfileprovider";
 
@@ -42,6 +48,13 @@ public class MainActivity extends AppCompatActivity {
 
     private Uri mUri;
     private Bitmap mBitmap;
+
+    private boolean isGalleryPicture = false;
+
+    private static final String JPEG_FILE_PREFIX = "IMG_";
+    private static final String JPEG_FILE_SUFFIX = ".jpg";
+
+    private static final String CAMERA_DIR = "/dcim/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,6 +113,28 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_IMAGE_REQUEST);
     }
 
+    public void takePicture(View view) {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+        try {
+            File f = createImageFile();
+
+            Log.d(LOG_TAG, "File: " + f.getAbsolutePath());
+
+            mUri = FileProvider.getUriForFile(
+                    this, FILE_PROVIDER_AUTHORITY, f);
+
+            takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, mUri);
+
+            if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+                startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent resultData) {
         Log.i(LOG_TAG, "Received an \"Activity Result\"");
@@ -119,7 +154,17 @@ public class MainActivity extends AppCompatActivity {
                 mTextView.setText(mUri.toString());
                 mBitmap = getBitmapFromUri(mUri);
                 mImageView.setImageBitmap(mBitmap);
+
+                isGalleryPicture = true;
             }
+        } else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == Activity.RESULT_OK) {
+            Log.i(LOG_TAG, "Uri: " + mUri.toString());
+
+            mTextView.setText(mUri.toString());
+            mBitmap = getBitmapFromUri(mUri);
+            mImageView.setImageBitmap(mBitmap);
+
+            isGalleryPicture = false;
         }
     }
 
@@ -150,26 +195,21 @@ public class MainActivity extends AppCompatActivity {
     // Recommended option found here: https://github.com/crlsndrsjmnz/MyShareImageExample
     private void sedEmailOpt1() {
         if (mUri != null) {
-            String filename = getFilePath();
-            saveBitmapToFile(getCacheDir(), filename, mBitmap, Bitmap.CompressFormat.JPEG, 100);
-            File imagePath = new File(getCacheDir(), filename);
-
-            Uri uriToImage = FileProvider.getUriForFile(
-                    this, FILE_PROVIDER_AUTHORITY, imagePath);
+            Uri imageUri = getShareableImageUri();
 
             String subject = "URI Example";
             String stream = "Hello! \n"
                     + "Uri example" + ".\n"
-                    + "Uri: " + uriToImage.toString() + "\n";
+                    + "Uri: " + imageUri.toString() + "\n";
 
             Intent shareIntent = ShareCompat.IntentBuilder.from(this)
-                    .setStream(uriToImage)
+                    .setStream(imageUri)
                     .setSubject(subject)
                     .setText(stream)
                     .getIntent();
 
             // Provide read access
-            shareIntent.setData(uriToImage);
+            shareIntent.setData(imageUri);
             shareIntent.setType("message/rfc822");
             shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(Intent.createChooser(shareIntent, "Share with"));
@@ -188,30 +228,25 @@ public class MainActivity extends AppCompatActivity {
     // Recommended option found here: https://github.com/crlsndrsjmnz/MyShareImageExample
     private void sedEmailOpt2() {
         if (mUri != null) {
-            String filename = getFilePath();
-            saveBitmapToFile(getCacheDir(), filename, mBitmap, Bitmap.CompressFormat.JPEG, 100);
-            File imagePath = new File(getCacheDir(), filename);
-
-            Uri uriToImage = FileProvider.getUriForFile(
-                    this, FILE_PROVIDER_AUTHORITY, imagePath);
+            Uri imageUri = getShareableImageUri();
 
             String subject = "URI Example";
             String stream = "Hello! \n"
                     + "Uri example" + ".\n"
-                    + "Uri: " + uriToImage.toString() + "\n";
+                    + "Uri: " + imageUri.toString() + "\n";
 
             Intent orderIntent = new Intent(Intent.ACTION_SENDTO);
             orderIntent.setData(Uri.parse("mailto:"));
             orderIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
             orderIntent.putExtra(Intent.EXTRA_TEXT, stream);
-            orderIntent.putExtra(Intent.EXTRA_STREAM, uriToImage);
+            orderIntent.putExtra(Intent.EXTRA_STREAM, imageUri);
             orderIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
             // Solution taken from http://stackoverflow.com/a/18332000/3346625
             List<ResolveInfo> resInfoList = getPackageManager().queryIntentActivities(orderIntent, PackageManager.MATCH_DEFAULT_ONLY);
             for (ResolveInfo resolveInfo : resInfoList) {
                 String packageName = resolveInfo.activityInfo.packageName;
-                grantUriPermission(packageName, uriToImage, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                grantUriPermission(packageName, imageUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
             }
 
             startActivity(Intent.createChooser(orderIntent, "Share with"));
@@ -225,6 +260,24 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }).show();
         }
+    }
+
+    public Uri getShareableImageUri() {
+        Uri imageUri;
+
+        if (isGalleryPicture) {
+            String filename = getFilePath();
+            saveBitmapToFile(getCacheDir(), filename, mBitmap, Bitmap.CompressFormat.JPEG, 100);
+            File imageFile = new File(getCacheDir(), filename);
+
+            imageUri = FileProvider.getUriForFile(
+                    this, FILE_PROVIDER_AUTHORITY, imageFile);
+
+        } else {
+            imageUri = mUri;
+        }
+
+        return imageUri;
     }
 
     public String getFilePath() {
@@ -278,5 +331,39 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return false;
+    }
+
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = JPEG_FILE_PREFIX + timeStamp + "_";
+        File albumF = getAlbumDir();
+        File imageF = File.createTempFile(imageFileName, JPEG_FILE_SUFFIX, albumF);
+        return imageF;
+    }
+
+    private File getAlbumDir() {
+        File storageDir = null;
+
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+
+            storageDir = new File(Environment.getExternalStorageDirectory()
+                    + CAMERA_DIR
+                    + getString(R.string.app_name));
+
+            if (storageDir != null) {
+                if (!storageDir.mkdirs()) {
+                    if (!storageDir.exists()) {
+                        Log.d("CameraSample", "failed to create directory");
+                        return null;
+                    }
+                }
+            }
+
+        } else {
+            Log.v(getString(R.string.app_name), "External storage is not mounted READ/WRITE.");
+        }
+
+        return storageDir;
     }
 }

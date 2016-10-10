@@ -24,8 +24,18 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/image_uri"
-        android:text="Select Image"
+        android:text="@string/select_image"
         android:onClick="openImageSelector"/>
+
+    <Button
+        android:id="@+id/take_picture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/image_uri"
+        android:layout_toRightOf="@+id/select_image"
+        android:layout_toEndOf="@+id/select_image"
+        android:text="@string/take_picture"
+        android:onClick="takePicture"/>
 
     <ImageView
         android:id="@+id/image"
