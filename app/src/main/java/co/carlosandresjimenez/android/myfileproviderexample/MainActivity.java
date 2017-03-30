@@ -38,6 +38,13 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+/*
+ * The code in this example is mostly taken from the examples provided by Google on the
+ * following links:
+ *
+ * https://developer.android.com/training/camera/index.html
+ * https://developer.android.com/training/camera/photobasics.html
+ */
 public class MainActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
